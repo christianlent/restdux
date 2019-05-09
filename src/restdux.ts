@@ -25,7 +25,7 @@ type ExtPromise<T> = Promise<T> & {
 
 type FullPromiseResult<Parms, Snd, Ret> = ExtPromise<IActionResult<Parms, Snd, Ret>>;
 
-type Id = string | number;
+export type Id = string | number;
 
 interface ICacheOptions<Ret> {
 	invalid?: (entity?: Ret, meta?: IMeta<Ret>) => boolean;
@@ -167,11 +167,12 @@ interface ICall<Parms, Snd, Ret, Ste> {
 	options: ICallOptions<Parms, Snd, Ret, Ste>;
 }
 
-interface IResource<Parms, Snd, Ret> {
+export interface IResource<Parms, Snd, Ret> {
 	actions: IResourceActions<Parms, Snd, Ret>;
 	reducer: Reducer<IStateBucket<Ret>, IActionResult<Parms, Snd, Ret>>;
 	types: IResourceTypes;
 	name: string;
+	getEntity: (state: IStateBucket<Ret>, id: Id) => Ret;
 	patchEntity: (state: IStateBucket<Ret>, id: Id, newData: Partial<Ret>) => IStateBucket<Ret>;
 	updateEntity: (state: IStateBucket<Ret>, id: Id, newData: Ret) => IStateBucket<Ret>;
 }
@@ -213,7 +214,7 @@ interface IResourceOptions<Parms, Snd, Ret> {
 	validateStatus?: (status: number) => boolean;
 }
 
-function combineReducers<Ste, Act extends Action<any>>(reducers: Array<Reducer<Ste, Act>>)
+export function combineReducers<Ste, Act extends Action<any>>(reducers: Array<Reducer<Ste, Act>>)
 	: Reducer<Ste, Act> {
 	return function combinedReducer(state: Ste | undefined, action: Act) {
 		reducers.forEach(function each(reducer) {
@@ -560,10 +561,7 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 		update: calls.update.types,
 	};
 
-	function getEntity(state?: IStateBucket<Ret>, id?: Id): Ret | undefined {
-		if (!state || !id) {
-			return;
-		}
+	function getEntity(state: IStateBucket<Ret>, id: Id): Ret {
 		return state.data[id];
 	}
 
@@ -843,7 +841,8 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 				}
 				return updateEntity(state, action.id, action.result);
 			case calls.create.types.success:
-				return updateEntity(state, action.id, action.result);
+				id = (action.result as any)[idField] as Id;
+				return updateEntity(state, id, action.result);
 			case calls.delete.types.success:
 				return deleteEntity(state, action.id);
 			case calls.index.types.success:
@@ -870,5 +869,5 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 		return state;
 	}
 
-	return {actions, name: resourceName, types, reducer, patchEntity, updateEntity};
+	return {actions, name: resourceName, types, reducer, getEntity, patchEntity, updateEntity};
 }

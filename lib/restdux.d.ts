@@ -16,7 +16,7 @@ declare type ExtPromise<T> = Promise<T> & {
     reject?: (reason: any) => void;
 };
 declare type FullPromiseResult<Parms, Snd, Ret> = ExtPromise<IActionResult<Parms, Snd, Ret>>;
-declare type Id = string | number;
+export declare type Id = string | number;
 interface ICacheOptions<Ret> {
     invalid?: (entity?: Ret, meta?: IMeta<Ret>) => boolean;
 }
@@ -106,11 +106,12 @@ interface ICall<Parms, Snd, Ret, Ste> {
     name: string;
     options: ICallOptions<Parms, Snd, Ret, Ste>;
 }
-interface IResource<Parms, Snd, Ret> {
+export interface IResource<Parms, Snd, Ret> {
     actions: IResourceActions<Parms, Snd, Ret>;
     reducer: Reducer<IStateBucket<Ret>, IActionResult<Parms, Snd, Ret>>;
     types: IResourceTypes;
     name: string;
+    getEntity: (state: IStateBucket<Ret>, id: Id) => Ret;
     patchEntity: (state: IStateBucket<Ret>, id: Id, newData: Partial<Ret>) => IStateBucket<Ret>;
     updateEntity: (state: IStateBucket<Ret>, id: Id, newData: Ret) => IStateBucket<Ret>;
 }
@@ -149,6 +150,7 @@ interface IResourceOptions<Parms, Snd, Ret> {
     updateStateOnUpdateSuccess?: boolean;
     validateStatus?: (status: number) => boolean;
 }
+export declare function combineReducers<Ste, Act extends Action<any>>(reducers: Array<Reducer<Ste, Act>>): Reducer<Ste, Act>;
 interface INoResource<Ret> {
     actions?: null;
     reducer?: null;
