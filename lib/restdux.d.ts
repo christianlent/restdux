@@ -44,11 +44,9 @@ export interface IMeta<Ret> {
 interface IGenericCallBag<Ste> {
     [key: string]: ICall<any, any, any, Ste>;
 }
-interface ICallActions<Parms, Snd, Ret> {
-    run: RunAction<Parms, Snd, Ret>;
-    initiate: InitiateAction<Parms, Snd, Ret>;
-    success: SuccessAction<Parms, Snd, Ret>;
-    failure: FailureAction<Parms, Snd, Ret>;
+interface ICallActions {
+    run: any;
+    [key: string]: any;
 }
 interface IResourceActions<Parms, Snd, Ret> {
     index: RunAction<Parms, Snd, Ret>;
@@ -75,17 +73,14 @@ interface IResourceActions<Parms, Snd, Ret> {
     deleteFailure: FailureAction<Parms, Snd, Ret>;
 }
 interface IResourceTypes {
-    create: ICallTypes;
-    delete: ICallTypes;
-    index: ICallTypes;
-    read: ICallTypes;
-    update: ICallTypes;
+    create: ITypeBag;
+    delete: ITypeBag;
+    index: ITypeBag;
+    read: ITypeBag;
+    update: ITypeBag;
 }
-interface ICallTypes {
-    failure: string;
-    initiate: string;
-    run: string;
-    success: string;
+interface ITypeBag {
+    [key: string]: string;
 }
 interface IHeaderBag {
     [key: string]: string;
@@ -99,12 +94,16 @@ export interface IStateBucket<Ret> {
         [key: string]: IMeta<Ret>;
     };
 }
+export declare const DefaultStateBucket: {
+    data: {};
+    meta: {};
+};
 interface ICall<Parms, Snd, Ret, Ste> {
-    actions: ICallActions<Parms, Snd, Ret>;
-    reducer: Reducer<Ste, IActionResult<Parms, Snd, Ret>>;
-    types: ICallTypes;
+    actions: ICallActions;
     name: string;
-    options: ICallOptions<Parms, Snd, Ret, Ste>;
+    reducer: Reducer<Ste, IActionResult<Parms, Snd, Ret>>;
+    setName: (name: string) => ICall<Parms, Snd, Ret, Ste>;
+    types: ITypeBag;
 }
 export interface IResource<Parms, Snd, Ret> {
     actions: IResourceActions<Parms, Snd, Ret>;
@@ -157,7 +156,7 @@ interface INoResource<Ret> {
     types?: null;
 }
 export declare function GetNoResource<Ret>(): INoResource<Ret>;
-export declare function CombineResource<Parms, Snd, Ret, C extends IGenericCallBag<IStateBucket<Ret>>>(resource: IResource<Parms, Snd, Ret>, callBucket?: C): {
+export declare function CombineResource<Parms, Snd, Ret, C extends IGenericCallBag<IStateBucket<Ret>>>(resource: IResource<Parms, Snd, Ret>, callBucket: C): {
     actions: {
         index: RunAction<Parms, Snd, Ret>;
         indexInitiate: InitiateAction<Parms, Snd, Ret>;
@@ -184,20 +183,36 @@ export declare function CombineResource<Parms, Snd, Ret, C extends IGenericCallB
     } & { [P in keyof C]: C[P]["actions"]["run"]; };
     reducer: Reducer<IStateBucket<Ret>, IActionResult<Parms, Snd, Ret>>;
     types: {
-        create: ICallTypes;
-        delete: ICallTypes;
-        index: ICallTypes;
-        read: ICallTypes;
-        update: ICallTypes;
-    } & { [P in keyof C]: ICallTypes; };
+        create: ITypeBag;
+        delete: ITypeBag;
+        index: ITypeBag;
+        read: ITypeBag;
+        update: ITypeBag;
+    } & { [P in keyof C]: C[P]["types"]; };
 };
-export declare function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(resource: INoResource<Ste>, callBucket?: C): {
+export declare function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(resource: INoResource<Ste>, callBucket: C): {
     actions: { [P in keyof C]: C[P]["actions"]["run"]; };
     reducer: Reducer<Ste, any>;
-    types: { [P in keyof C]: ICallTypes; };
+    types: { [P in keyof C]: C[P]["types"]; };
 };
 export declare function getQueryString<Parms extends IParameterBag>(urlParameters?: Parms): string;
 export declare function idUrlBuilder<Parms extends IParameterBag>(rootUrl: string): (id?: string | number | undefined, urlParameters?: Parms | undefined) => string;
-export declare function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(newOptions: ICallOptions<Parms, Snd, Ret, Ste>): ICall<Parms, Snd, Ret, Ste>;
+export declare function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(newOptions: ICallOptions<Parms, Snd, Ret, Ste>): {
+    actions: {
+        failure: FailureAction<Parms, Snd, Ret>;
+        initiate: InitiateAction<Parms, Snd, Ret>;
+        run: (id?: string | number | undefined, sent?: Snd | undefined, urlParameters?: Parms | undefined) => ThunkAction<ExtPromise<IActionResult<Parms, Snd, Ret>>, Ret, undefined, Action<any>>;
+        success: SuccessAction<Parms, Snd, Ret>;
+    };
+    name: string;
+    reducer: (s: any) => any;
+    setName: (newName: string) => any;
+    types: {
+        failure: string;
+        initiate: string;
+        run: string;
+        success: string;
+    };
+};
 export declare function Resource<Parms extends IParameterBag, Snd, Ret>(options: IResourceOptions<Parms, Snd, Ret>): IResource<Parms, Snd, Ret>;
 export {};

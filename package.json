@@ -1,6 +1,6 @@
 {
   "name": "restdux",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A Typescript/Javascript library for interacting with RESTful server APIs and connecting them to Redux store",
   "main": "lib/restdux.js",
   "types": "lib/restdux.d.ts",
