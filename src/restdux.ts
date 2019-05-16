@@ -25,7 +25,7 @@ type ExtPromise<T> = Promise<T> & {
 
 type FullPromiseResult<Parms, Snd, Ret> = ExtPromise<IActionResult<Parms, Snd, Ret>>;
 
-type Id = string | number;
+export type Id = string | number;
 
 interface ICacheOptions<Ret> {
 	invalid?: (entity?: Ret, meta?: IMeta<Ret>) => boolean;
@@ -92,11 +92,9 @@ interface IGenericCallBag<Ste> {
 	[key: string]: ICall<any, any, any, Ste>;
 }
 
-interface ICallActions<Parms, Snd, Ret> {
-	run: RunAction<Parms, Snd, Ret>;
-	initiate: InitiateAction<Parms, Snd, Ret>;
-	success: SuccessAction<Parms, Snd, Ret>;
-	failure: FailureAction<Parms, Snd, Ret>;
+interface ICallActions {
+	run: any;
+	[key: string]: any;
 }
 
 interface IResourceActions<Parms, Snd, Ret> {
@@ -125,18 +123,15 @@ interface IResourceActions<Parms, Snd, Ret> {
 }
 
 interface IResourceTypes {
-	create: ICallTypes;
-	delete: ICallTypes;
-	index: ICallTypes;
-	read: ICallTypes;
-	update: ICallTypes;
+	create: ITypeBag;
+	delete: ITypeBag;
+	index: ITypeBag;
+	read: ITypeBag;
+	update: ITypeBag;
 }
 
-interface ICallTypes {
-	failure: string;
-	initiate: string;
-	run: string;
-	success: string;
+interface ITypeBag {
+	[key: string]: string;
 }
 
 interface IHeaderBag {
@@ -154,24 +149,25 @@ export interface IStateBucket<Ret> {
 	};
 }
 
-const DefaultStateBucket = {
+export const DefaultStateBucket = {
 	data: {},
 	meta: {},
 };
 
 interface ICall<Parms, Snd, Ret, Ste> {
-	actions: ICallActions<Parms, Snd, Ret>;
-	reducer: Reducer<Ste, IActionResult<Parms, Snd, Ret>>;
-	types: ICallTypes;
+	actions: ICallActions;
 	name: string;
-	options: ICallOptions<Parms, Snd, Ret, Ste>;
+	reducer: Reducer<Ste, IActionResult<Parms, Snd, Ret>>;
+	setName: (name: string) => ICall<Parms, Snd, Ret, Ste>;
+	types: ITypeBag;
 }
 
-interface IResource<Parms, Snd, Ret> {
+export interface IResource<Parms, Snd, Ret> {
 	actions: IResourceActions<Parms, Snd, Ret>;
 	reducer: Reducer<IStateBucket<Ret>, IActionResult<Parms, Snd, Ret>>;
 	types: IResourceTypes;
 	name: string;
+	getEntity: (state: IStateBucket<Ret>, id: Id) => Ret;
 	patchEntity: (state: IStateBucket<Ret>, id: Id, newData: Partial<Ret>) => IStateBucket<Ret>;
 	updateEntity: (state: IStateBucket<Ret>, id: Id, newData: Ret) => IStateBucket<Ret>;
 }
@@ -213,7 +209,7 @@ interface IResourceOptions<Parms, Snd, Ret> {
 	validateStatus?: (status: number) => boolean;
 }
 
-function combineReducers<Ste, Act extends Action<any>>(reducers: Array<Reducer<Ste, Act>>)
+export function combineReducers<Ste, Act extends Action<any>>(reducers: Array<Reducer<Ste, Act>>)
 	: Reducer<Ste, Act> {
 	return function combinedReducer(state: Ste | undefined, action: Act) {
 		reducers.forEach(function each(reducer) {
@@ -243,12 +239,12 @@ interface ICombinedCalls<Ste, C extends IGenericCallBag<Ste>> {
 	};
 	reducer: Reducer<Ste, any>;
 	types: {
-		[P in keyof C]: ICallTypes;
+		[P in keyof C]: C[P]["types"];
 	};
 }
 
 export function CombineResource<Parms, Snd, Ret, C extends IGenericCallBag<IStateBucket<Ret>>>(
-	resource: IResource<Parms, Snd, Ret>, callBucket: C = {} as C) {
+	resource: IResource<Parms, Snd, Ret>, callBucket: C) {
 	type Ste = IStateBucket<Ret>;
 	const calls: ICombinedCalls<Ste, C> = CombineCalls<Ste, C>(GetNoResource<Ste>(), callBucket);
 	return {
@@ -259,12 +255,9 @@ export function CombineResource<Parms, Snd, Ret, C extends IGenericCallBag<IStat
 }
 
 export function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(
-	resource: INoResource<Ste>, callBucket: C = {} as C) {
+	resource: INoResource<Ste>, callBucket: C) {
 
-	const calls = Object.keys(callBucket).map((name) => {
-		const options = callBucket[name].options;
-		return Call({...options, name});
-	});
+	const calls = Object.keys(callBucket).map((name) => callBucket[name].setName(name));
 
 	type ActionsType = {
 		[P in keyof C]: C[P]["actions"]["run"];
@@ -276,7 +269,7 @@ export function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(
 	const reducer = combineReducers<Ste, any>(calls.map((call) => call.reducer));
 
 	type TypesType = {
-		[P in keyof C]: ICallTypes;
+		[P in keyof C]: C[P]["types"];
 	};
 
 	const types = {} as TypesType;
@@ -327,7 +320,7 @@ function urlBuilder<Parms extends IParameterBag>(url: string) {
 
 export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 	newOptions: ICallOptions<Parms, Snd, Ret, Ste>,
-): ICall<Parms, Snd, Ret, Ste> {
+) {
 	const defaultCallOptions = {
 		headers: {
 			"Accept": "application/json",
@@ -348,7 +341,7 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 	const options = {...defaultCallOptions, ...newOptions};
 	const name = options.name;
 	const stringifyBody = options.stringifyBody as (requestBody: Snd) => string;
-	const types: ICallTypes = {
+	const types = {
 		failure: `${options.resourceName.toUpperCase()}_${name.toUpperCase()}_FAILURE`,
 		initiate: `${options.resourceName.toUpperCase()}_${name.toUpperCase()}_INITIATE`,
 		run: `${options.resourceName.toUpperCase()}_${name.toUpperCase()}`,
@@ -479,9 +472,15 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 		run,
 		success,
 	};
-	const reducer = options.reducer || DefaultReducer;
+	const reducer = (options.reducer || DefaultReducer) as (s: any) => any;
 
-	return {actions, types, reducer, name, options: newOptions};
+	return {
+		actions,
+		name,
+		reducer,
+		setName: (newName: string) => Call({...newOptions, name: newName}),
+		types,
+	};
 }
 
 const defaultResourceOptions = {
@@ -560,10 +559,7 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 		update: calls.update.types,
 	};
 
-	function getEntity(state?: IStateBucket<Ret>, id?: Id): Ret | undefined {
-		if (!state || !id) {
-			return;
-		}
+	function getEntity(state: IStateBucket<Ret>, id: Id): Ret {
 		return state.data[id];
 	}
 
@@ -767,7 +763,7 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 		if (!id) {
 			return state;
 		}
-		
+
 		state = {
 			data: {...state.data},
 			meta: {...state.meta},
@@ -843,7 +839,8 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 				}
 				return updateEntity(state, action.id, action.result);
 			case calls.create.types.success:
-				return updateEntity(state, action.id, action.result);
+				id = (action.result as any)[idField] as Id;
+				return updateEntity(state, id, action.result);
 			case calls.delete.types.success:
 				return deleteEntity(state, action.id);
 			case calls.index.types.success:
@@ -870,5 +867,5 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 		return state;
 	}
 
-	return {actions, name: resourceName, types, reducer, patchEntity, updateEntity};
+	return {actions, name: resourceName, types, reducer, getEntity, patchEntity, updateEntity};
 }
