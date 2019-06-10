@@ -660,19 +660,21 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 			}
 
 			const state: IStateBucket<Ret> = getState()[resourceName];
-			const entity = getEntity(state, id);
 			const meta = getMeta(state, id);
+			if (meta && meta.handler) {
+				return meta.handler;
+			}
+
+			const entity = getEntity(state, id);
 			if (entity && meta && isValid(cacheOptions, state, id)) {
-				if (meta.handler) {
-					return meta.handler;
-				}
 				return Promise.resolve({
 					result: entity,
 					type: `${resourceName.toUpperCase()}_CACHE`,
 				});
 			}
+
 			if (options.batchReads) {
-				if (entity && meta && isQueued(entity) && meta.handler) {
+				if (meta && isQueued(meta) && meta.handler) {
 					return meta.handler;
 				}
 				let resolve: Resolve<IActionResult<Parms, Snd, Ret>> = () => undefined;
