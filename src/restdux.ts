@@ -27,7 +27,7 @@ type FullPromiseResult<Parms, Snd, Ret> = ExtPromise<IActionResult<Parms, Snd, R
 
 export type Id = string | number;
 
-interface ICacheOptions<Ret> {
+export interface ICacheOptions<Ret> {
 	invalid?: (entity?: Ret, meta?: IMeta<Ret>) => boolean;
 }
 
@@ -97,7 +97,7 @@ interface ICallActions {
 	[key: string]: any;
 }
 
-interface IResourceActions<Parms, Snd, Ret> {
+export interface IResourceActions<Parms, Snd, Ret> {
 	index: RunAction<Parms, Snd, Ret>;
 	indexInitiate: InitiateAction<Parms, Snd, Ret>;
 	indexSuccess: SuccessAction<Parms, Snd, Ret>;
@@ -122,7 +122,7 @@ interface IResourceActions<Parms, Snd, Ret> {
 	deleteFailure: FailureAction<Parms, Snd, Ret>;
 }
 
-interface IResourceTypes {
+export interface IResourceTypes {
 	create: ITypeBag;
 	delete: ITypeBag;
 	index: ITypeBag;
@@ -130,7 +130,7 @@ interface IResourceTypes {
 	update: ITypeBag;
 }
 
-interface ITypeBag {
+export interface ITypeBag {
 	[key: string]: string;
 }
 
