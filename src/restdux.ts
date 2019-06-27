@@ -201,7 +201,7 @@ interface IResourceOptions<Parms, Snd, Ret> {
 	name: string;
 	parseResult?: (resultBody: any) => Ret;
 	preFetch?: () => void;
-	rootUrl: string;
+	rootUrl: string | (() => string);
 	stringifyBody?: (requestBody: Snd) => string;
 	transformIndex?: (result: any) => Ret[];
 	updateStateOnUpdateInitiate?: boolean;
@@ -264,7 +264,7 @@ export function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(
 	};
 
 	const actions = {} as ActionsType;
-	calls.forEach((call) => actions[call.name] = call.actions.run);
+	calls.forEach((call) => actions[call.name as keyof C] = call.actions.run);
 
 	const reducer = combineReducers<Ste, any>(calls.map((call) => call.reducer));
 
@@ -273,7 +273,7 @@ export function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(
 	};
 
 	const types = {} as TypesType;
-	calls.forEach((call) => types[call.name] = call.types);
+	calls.forEach((call) => types[call.name as keyof C] = call.types);
 
 	return {
 		actions,
@@ -300,8 +300,9 @@ export function getQueryString<Parms extends IParameterBag>(urlParameters?: Parm
 		.join("&");
 }
 
-export function idUrlBuilder<Parms extends IParameterBag>(rootUrl: string) {
+export function idUrlBuilder<Parms extends IParameterBag>(rootUrl: string | (() => string)) {
 	return function urlF(id?: Id, urlParameters?: Parms) {
+		rootUrl = typeof rootUrl === "function" ? rootUrl() : rootUrl;
 		rootUrl = rootUrl.replace(/\/$/, "");
 		return rootUrl
 			+ "/"
@@ -311,10 +312,11 @@ export function idUrlBuilder<Parms extends IParameterBag>(rootUrl: string) {
 	};
 }
 
-function urlBuilder<Parms extends IParameterBag>(url: string) {
+function urlBuilder<Parms extends IParameterBag>(rootUrl: string | (() => string)) {
 	return function urlF(id?: Id, urlParameters?: Parms) {
-		url = url.replace(/\/$/, "");
-		return url + getQueryString<Parms>(urlParameters);
+		rootUrl = typeof rootUrl === "function" ? rootUrl() : rootUrl;
+		rootUrl = rootUrl.replace(/\/$/, "");
+		return rootUrl + getQueryString<Parms>(urlParameters);
 	};
 }
 
@@ -519,8 +521,8 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 			method: options.methodCreate,
 			name: "create",
 			resourceName,
-			url: urlBuilder(options.rootUrl,
-		)}),
+			url: urlBuilder(options.rootUrl),
+		}),
 		delete: Call<Parms, Snd, Ret, IStateBucket<Ret>>({
 			...options,
 			method: options.methodDelete,

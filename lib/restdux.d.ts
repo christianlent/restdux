@@ -142,7 +142,7 @@ interface IResourceOptions<Parms, Snd, Ret> {
     name: string;
     parseResult?: (resultBody: any) => Ret;
     preFetch?: () => void;
-    rootUrl: string;
+    rootUrl: string | (() => string);
     stringifyBody?: (requestBody: Snd) => string;
     transformIndex?: (result: any) => Ret[];
     updateStateOnUpdateInitiate?: boolean;
@@ -196,7 +196,7 @@ export declare function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(resour
     types: { [P in keyof C]: C[P]["types"]; };
 };
 export declare function getQueryString<Parms extends IParameterBag>(urlParameters?: Parms): string;
-export declare function idUrlBuilder<Parms extends IParameterBag>(rootUrl: string): (id?: string | number | undefined, urlParameters?: Parms | undefined) => string;
+export declare function idUrlBuilder<Parms extends IParameterBag>(rootUrl: string | (() => string)): (id?: string | number | undefined, urlParameters?: Parms | undefined) => string;
 export declare function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(newOptions: ICallOptions<Parms, Snd, Ret, Ste>): {
     actions: {
         failure: FailureAction<Parms, Snd, Ret>;
