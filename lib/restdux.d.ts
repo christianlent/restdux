@@ -129,6 +129,7 @@ interface ICallOptions<Parms, Snd, Ret, Ste> {
 }
 interface IResourceOptions<Parms, Snd, Ret> {
     batchReads?: boolean;
+    batchSizeMax?: number;
     batchDelayMax?: number;
     batchDelayMin?: number;
     batchIdsParameter?: string;

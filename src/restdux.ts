@@ -188,6 +188,7 @@ interface ICallOptions<Parms, Snd, Ret, Ste> {
 
 interface IResourceOptions<Parms, Snd, Ret> {
 	batchReads?: boolean;
+	batchSizeMax?: number;
 	batchDelayMax?: number;
 	batchDelayMin?: number;
 	batchIdsParameter?: string;
@@ -489,6 +490,7 @@ const defaultResourceOptions = {
 	batchDelayMax: 300,
 	batchDelayMin: 100,
 	batchIdsParameter: "ids[]",
+	batchSizeMax: 50,
 	batchReads: false,
 	headers: {
 		"Accept": "application/json",
@@ -614,9 +616,11 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 
 			function batchProcess() {
 				const batchState: IStateBucket<Ret> = getState()[resourceName];
+				const batchDelayMin = options.batchDelayMin || defaultResourceOptions.batchDelayMin;
+				const batchSizeMax = options.batchSizeMax || defaultResourceOptions.batchSizeMax;
 				let latest = 0;
 				const batchedMetaBag: {[key: string]: IMeta<Ret>} = {};
-				Object.keys(batchState.meta).forEach((targetId) => {
+				Object.keys(batchState.meta).slice(0, batchSizeMax).forEach((targetId) => {
 					const batchedMeta = batchState.meta[targetId];
 					if (!isQueued(batchedMeta)) {
 						return;
@@ -630,7 +634,6 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 					batchedMetaBag[targetId] = batchedMeta;
 				});
 
-				const batchDelayMin = options.batchDelayMin || defaultResourceOptions.batchDelayMin;
 				if (!Object.keys(batchedMetaBag).length || new Date().getTime() - latest < batchDelayMin) {
 					queueUpdate(batchProcess);
 					return;
@@ -654,7 +657,15 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 						});
 						queueUpdate(batchProcess);
 					})
-					.catch(function c() {
+					.catch(function c(err) {
+						Object.keys(batchedMetaBag).forEach((targetId) => {
+							const placeholderEntity = batchedMetaBag[targetId];
+							dispatch(actions.readFailure(err.response as Response, {} as Ret, targetId));
+							if (!placeholderEntity.handler || !placeholderEntity.handler.reject) {
+								return;
+							}
+							placeholderEntity.handler.reject(err);
+						});
 						queueUpdate(batchProcess);
 						console.error.call(null, arguments);
 					})
