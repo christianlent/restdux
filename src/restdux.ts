@@ -601,9 +601,21 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 	}
 
 	function isQueued(meta: IMeta<Ret>) {
-		return meta.handler
-			&& meta.loading
-			&& meta.handler.resolve;
+		return meta.handler != null
+			&& meta.loading != null
+			&& meta.handler.resolve != null;
+	}
+
+	function filterMax<T>(arr: T[], max: number, cb: (t: T) => boolean): T[] {
+		const res: T[] = [];
+		let lcv = 0;
+		while (res.length < max && lcv < arr.length) {
+			if (cb(arr[lcv])) {
+				res.push(arr[lcv]);
+			}
+			lcv++;
+		}
+		return res;
 	}
 
 	const cacheread: CacheReadAction<Parms, Snd, Ret> = function cachereadF(
@@ -620,19 +632,17 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 				const batchSizeMax = options.batchSizeMax || defaultResourceOptions.batchSizeMax;
 				let latest = 0;
 				const batchedMetaBag: {[key: string]: IMeta<Ret>} = {};
-				Object.keys(batchState.meta).slice(0, batchSizeMax).forEach((targetId) => {
-					const batchedMeta = batchState.meta[targetId];
-					if (!isQueued(batchedMeta)) {
-						return;
-					}
+				filterMax(Object.keys(batchState.meta), batchSizeMax, (targetId) => isQueued(batchState.meta[targetId]))
+					.forEach((targetId) => {
+						const batchedMeta = batchState.meta[targetId];
+						const loadingTime = (batchedMeta.loading || new Date()).getTime();
+						if (loadingTime > latest) {
+							latest = loadingTime;
+						}
 
-					const loadingTime = (batchedMeta.loading || new Date()).getTime();
-					if (loadingTime > latest) {
-						latest = loadingTime;
+						batchedMetaBag[targetId] = batchedMeta;
 					}
-
-					batchedMetaBag[targetId] = batchedMeta;
-				});
+				);
 
 				if (!Object.keys(batchedMetaBag).length || new Date().getTime() - latest < batchDelayMin) {
 					queueUpdate(batchProcess);
