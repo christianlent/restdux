@@ -133,7 +133,7 @@ interface IResourceOptions<Parms, Snd, Ret> {
     batchDelayMax?: number;
     batchDelayMin?: number;
     batchIdsParameter?: string;
-    cacheOptions: ICacheOptions<Ret>;
+    cacheOptions?: ICacheOptions<Ret>;
     headers?: IHeaderBag | (() => IHeaderBag);
     idField?: string;
     methodCreate?: FetchMethod;
@@ -190,12 +190,12 @@ export declare function CombineResource<Parms, Snd, Ret, C extends IGenericCallB
         index: ITypeBag;
         read: ITypeBag;
         update: ITypeBag;
-    } & { [P in keyof C]: C[P]["types"]; };
+    } & { [P_1 in keyof C]: C[P_1]["types"]; };
 };
 export declare function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(resource: INoResource<Ste>, callBucket: C): {
     actions: { [P in keyof C]: C[P]["actions"]["run"]; };
     reducer: Reducer<Ste, any>;
-    types: { [P in keyof C]: C[P]["types"]; };
+    types: { [P_1 in keyof C]: C[P_1]["types"]; };
 };
 export declare function getQueryString<Parms extends IParameterBag>(urlParameters?: Parms): string;
 export declare function idUrlBuilder<Parms extends IParameterBag>(rootUrl: string | (() => string)): (id?: string | number | undefined, urlParameters?: Parms | undefined) => string;
