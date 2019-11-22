@@ -192,6 +192,7 @@ interface IResourceOptions<Parms, Snd, Ret> {
 	batchDelayMax?: number;
 	batchDelayMin?: number;
 	batchIdsParameter?: string;
+	cacheOptions: ICacheOptions<Ret>,
 	headers?: IHeaderBag | (() => IHeaderBag);
 	idField?: string;
 	methodCreate?: FetchMethod;
@@ -492,6 +493,7 @@ const defaultResourceOptions = {
 	batchIdsParameter: "ids[]",
 	batchSizeMax: 50,
 	batchReads: false,
+	cacheOptions: {},
 	headers: {
 		"Accept": "application/json",
 		"Content-Type": "application/json",
@@ -689,7 +691,10 @@ export function Resource<Parms extends IParameterBag, Snd, Ret>(
 			}
 
 			const entity = getEntity(state, id);
-			if (entity && meta && isValid(cacheOptions, state, id)) {
+			if (entity && meta && isValid({
+				...options.cacheOptions,
+				...cacheOptions,
+			}, state, id)) {
 				return Promise.resolve({
 					result: entity,
 					type: `${resourceName.toUpperCase()}_CACHE`,

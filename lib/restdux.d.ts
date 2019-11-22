@@ -133,6 +133,7 @@ interface IResourceOptions<Parms, Snd, Ret> {
     batchDelayMax?: number;
     batchDelayMin?: number;
     batchIdsParameter?: string;
+    cacheOptions: ICacheOptions<Ret>;
     headers?: IHeaderBag | (() => IHeaderBag);
     idField?: string;
     methodCreate?: FetchMethod;
