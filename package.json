@@ -6,7 +6,7 @@
 	"types": "lib/restdux.d.ts",
 	"scripts": {
 		"build": "tsc",
-		"format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+		"format": "prettier --write \"src/*.ts\"",
 		"lint": "eslint \"src/*.ts\" --fix",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
