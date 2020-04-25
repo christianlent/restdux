@@ -277,8 +277,9 @@ export function CombineResource<
 	Parms,
 	Snd,
 	Ret,
+	Idx,
 	C extends GenericCallBag<IStateBucket<Ret>>
->(resource: Resource<Parms, Snd, Ret>, callBucket: C) {
+>(resource: Resource<Parms, Snd, Ret, Idx>, callBucket: C) {
 	type Ste = IStateBucket<Ret>;
 	const calls: CombinedCalls<Ste, C> = CombineCalls<Ste, C>(
 		GetNoResource<Ste>(),
