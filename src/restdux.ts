@@ -11,6 +11,7 @@ export type FullPromiseResult<Parms, Snd, Ret> = ExtPromise<
 	ActionResult<Parms, Snd, Ret>
 >;
 export type ActionResult<Parms, Snd, Ret> = Action<string> & {
+	error?: any;
 	sent?: Snd;
 	handler?: FullPromiseResult<Parms, Snd, Ret>;
 	id?: Id;
@@ -515,7 +516,7 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 					dispatch(
 						failure(fetchResponse, fetchResult, id, sent, urlParameters)
 					);
-					const result = {
+					const result: ActionResult<Parms, Snd, Ret> = {
 						error,
 						response: fetchResponse,
 						result: fetchResult,
@@ -796,7 +797,6 @@ export function Resource<
 							placeholderEntity.handler.reject(err);
 						});
 						queueUpdate(batchProcess);
-						console.error(err);
 					});
 			}
 
@@ -1016,9 +1016,9 @@ export function Resource<
 					loading: undefined,
 				});
 			default:
-				Object.values(calls).forEach((call) =>
-					call.reducer(state, action as any)
-				);
+				Object.values(calls).forEach((call) => {
+					state = call.reducer(state, action as any);
+				});
 				break;
 		}
 		return state;
