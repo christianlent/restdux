@@ -252,7 +252,7 @@ interface IResourceOptions<Parms, Snd, Ret, Idx> {
 export function combineReducers<Ste, Act extends Action<any>>(
 	reducers: Array<Reducer<Ste, Act>>
 ): Reducer<Ste, Act> {
-	return function combinedReducer(state: Ste | undefined, action: Act) {
+	return (state: Ste | undefined, action: Act) => {
 		reducers.forEach((reducer) => {
 			state = reducer(state, action);
 		});
@@ -454,7 +454,7 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 		sent?: Snd,
 		urlParameters?: Parms
 	): FullThunkResult<Parms, Snd, Ret> {
-		return function returnF(dispatch: any) {
+		return (dispatch: any) => {
 			let resolve: Resolve<IActionResult<Parms, Snd, Ret>>;
 			let reject: Reject<IActionResult<Parms, Snd, Ret>>;
 			const handler = new Promise<IActionResult<Parms, Snd, Ret>>(
@@ -543,7 +543,8 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 		run,
 		success,
 	};
-	const reducer = (options.reducer || DefaultReducer) as (s: any) => any;
+	const reducer: Reducer<Ste, IActionResult<Parms, Snd, Ret>> =
+		options.reducer || (DefaultReducer as any);
 
 	return {
 		actions,
@@ -583,7 +584,9 @@ export function Resource<
 	Snd,
 	Ret,
 	Idx = SimpleIndexArray<Ret>
->(options: IResourceOptions<Parms, Snd, Ret, Idx>): IResource<Parms, Snd, Ret> {
+>(
+	options: IResourceOptions<Parms, Snd, Ret, Idx>
+): IResource<Parms, Snd, Ret, Idx> {
 	options = { ...defaultResourceOptions, ...options };
 	const idField = options.idField as string;
 	const resourceName = options.name;
@@ -612,6 +615,25 @@ export function Resource<
 			method: options.methodIndex,
 			name: "index",
 			parseResult: parseIndexResult,
+			reducer: (state = DefaultStateBucket, action) => {
+				if (action.type !== calls.index.types.success) {
+					return state;
+				}
+
+				let id;
+				state = { ...state };
+				const results = transformIndex(action.result);
+				results.forEach((item: Ret) => {
+					id = (item as any)[idField] as Id;
+					state = updateEntity(state, id, item, {
+						handler: undefined,
+						loadFailed: undefined,
+						loaded: new Date(),
+						loading: undefined,
+					});
+				});
+				return state;
+			},
 			resourceName,
 			url: urlBuilder(options.rootUrl),
 		}),
@@ -706,7 +728,7 @@ export function Resource<
 		sent?: Snd,
 		urlParameters?: Parms
 	) => {
-		return function crReturn(dispatch, getState: any) {
+		return (dispatch, getState: any) => {
 			function batchProcess() {
 				const batchState: IStateBucket<Ret> = getState()[resourceName];
 				const batchDelayMin =
@@ -1003,19 +1025,6 @@ export function Resource<
 				return updateEntity(state, id, action.result);
 			case calls.delete.types.success:
 				return deleteEntity(state, action.id);
-			case calls.index.types.success:
-				state = { ...state };
-				const results = transformIndex(action.result);
-				results.forEach((item: Ret) => {
-					id = (item as any)[idField] as Id;
-					state = updateEntity(state, id, item, {
-						handler: undefined,
-						loadFailed: undefined,
-						loaded: new Date(),
-						loading: undefined,
-					});
-				});
-				return state;
 			case `${resourceName.toUpperCase()}_INVALIDATE`:
 				return updateEntity(state, action.id, undefined, {
 					handler: undefined,
@@ -1023,6 +1032,11 @@ export function Resource<
 					loaded: undefined,
 					loading: undefined,
 				});
+			default:
+				Object.values(calls).forEach((call) =>
+					call.reducer(state, action as any)
+				);
+				break;
 		}
 		return state;
 	}
