@@ -1,22 +1,33 @@
 import { Action, Reducer } from "redux";
 import { ThunkAction, ThunkDispatch } from "redux-thunk";
 
-export type IActionResult<Parms, Snd, Ret> = Action<string> & {
+export type Resolve<T> = (r: T | PromiseLike<T>) => void;
+export type Reject<T> = (reason: any) => void;
+export type ExtPromise<T> = Promise<T> & {
+	resolve?: (r: T | PromiseLike<T>) => void;
+	reject?: (reason: any) => void;
+};
+export type FullPromiseResult<Parms, Snd, Ret> = ExtPromise<
+	ActionResult<Parms, Snd, Ret>
+>;
+export type ActionResult<Parms, Snd, Ret> = Action<string> & {
 	sent?: Snd;
 	handler?: FullPromiseResult<Parms, Snd, Ret>;
 	id?: Id;
 	response?: Response;
 	result: Ret;
-	type?: string;
 	urlParameters?: Parms;
 };
-
-type PartialActionResult<Parms, Snd, Ret> = Partial<
-	IActionResult<Parms, Snd, Ret>
+export type PromiseActionResult<Parms, Snd, Ret> = Promise<
+	ActionResult<Parms, Snd, Ret>
+>;
+export type AsyncAction<Parms, Snd, Ret, Ste> = ThunkAction<
+	PromiseActionResult<Parms, Snd, Ret>,
+	Ste,
+	unknown,
+	Action
 >;
 
-type Resolve<T> = (r: T | PromiseLike<T>) => void;
-type Reject<T> = (reason: any) => void;
 type FetchMethod =
 	| "DELETE"
 	| "GET"
@@ -33,26 +44,12 @@ type FetchMethod =
 	| "put"
 	| "patch";
 
-type ExtPromise<T> = Promise<T> & {
-	resolve?: (r: T | PromiseLike<T>) => void;
-	reject?: (reason: any) => void;
-};
-
-type FullPromiseResult<Parms, Snd, Ret> = ExtPromise<
-	IActionResult<Parms, Snd, Ret>
->;
-
 export type Id = string | number;
 
 export interface ICacheOptions<Ret> {
 	invalid?: (entity?: Ret, meta?: IMeta<Ret>) => boolean;
 }
 
-type ThunkResult<T, Ste> = ThunkAction<T, Ste, undefined, Action>;
-type FullThunkResult<Parms, Snd, Ret> = ThunkResult<
-	FullPromiseResult<Parms, Snd, Ret>,
-	Ret
->;
 export type ApiThunkDispatch<
 	TState = any,
 	TExtraThunkArg = undefined,
@@ -66,25 +63,25 @@ export interface IDispatchProp<
 	dispatch: ApiThunkDispatch<TState, TExtraThunkArg, TBasicAction>;
 }
 
-type CacheReadAction<Parms, Snd, Ret> = (
+type CacheReadAction<Parms, Snd, Ret, Ste> = (
 	cacheOptions: ICacheOptions<Ret>,
 	id: Id,
 	sent?: Snd,
 	urlParameters?: Parms
-) => FullThunkResult<Parms, Snd, Ret>;
+) => AsyncAction<Parms, Snd, Ret, Ste>;
 
-type RunAction<Parms, Snd, Ret> = (
+type RunAction<Parms, Snd, Ret, Ste> = (
 	id?: Id,
 	sent?: Snd,
 	urlParameters?: Parms
-) => FullThunkResult<Parms, Snd, Ret>;
+) => AsyncAction<Parms, Snd, Ret, Ste>;
 
 type InitiateAction<Parms, Snd, Ret> = (
 	id?: Id,
 	sent?: Snd,
 	urlParameters?: Parms,
 	handler?: FullPromiseResult<Parms, Snd, Ret>
-) => PartialActionResult<Parms, Snd, Ret>;
+) => ActionResult<Parms, Snd, Ret>;
 
 type InvalidateAction<Parms, Snd, Ret> = (
 	id: Id,
@@ -98,7 +95,7 @@ type SuccessAction<Parms, Snd, Ret> = (
 	id?: Id,
 	sent?: Snd,
 	urlParameters?: Parms
-) => IActionResult<Parms, Snd, Ret>;
+) => ActionResult<Parms, Snd, Ret>;
 
 type FailureAction<Parms, Snd, Ret> = (
 	response: Response,
@@ -106,7 +103,7 @@ type FailureAction<Parms, Snd, Ret> = (
 	id?: Id,
 	sent?: Snd,
 	urlParameters?: Parms
-) => IActionResult<Parms, Snd, Ret>;
+) => ActionResult<Parms, Snd, Ret>;
 
 export interface IMeta<Ret> {
 	loadFailed?: Date;
@@ -124,26 +121,26 @@ interface ICallActions {
 	[key: string]: any;
 }
 
-export interface IResourceActions<Parms, Snd, Ret, Idx> {
-	index: RunAction<Parms, Partial<Snd>, Idx>;
+export interface IResourceActions<Parms, Snd, Ret, Idx, Ste> {
+	index: RunAction<Parms, Partial<Snd>, Idx, Ste>;
 	indexInitiate: InitiateAction<Parms, Partial<Snd>, Idx>;
 	indexSuccess: SuccessAction<Parms, Partial<Snd>, Idx>;
 	indexFailure: FailureAction<Parms, Partial<Snd>, Idx>;
-	create: RunAction<Parms, Snd, Ret>;
+	create: RunAction<Parms, Snd, Ret, Ste>;
 	createInitiate: InitiateAction<Parms, Snd, Ret>;
 	createSuccess: SuccessAction<Parms, Snd, Ret>;
 	createFailure: FailureAction<Parms, Snd, Ret>;
-	cacheread: CacheReadAction<Parms, Snd, Ret>;
+	cacheread: CacheReadAction<Parms, Snd, Ret, Ste>;
 	invalidate: InvalidateAction<Parms, Snd, Ret>;
-	read: RunAction<Parms, Snd, Ret>;
+	read: RunAction<Parms, Snd, Ret, Ste>;
 	readInitiate: InitiateAction<Parms, Snd, Ret>;
 	readSuccess: SuccessAction<Parms, Snd, Ret>;
 	readFailure: FailureAction<Parms, Snd, Ret>;
-	update: RunAction<Parms, Partial<Snd>, Ret>;
+	update: RunAction<Parms, Partial<Snd>, Ret, Ste>;
 	updateInitiate: InitiateAction<Parms, Partial<Snd>, Ret>;
 	updateSuccess: SuccessAction<Parms, Partial<Snd>, Ret>;
 	updateFailure: FailureAction<Parms, Partial<Snd>, Ret>;
-	delete: RunAction<Parms, Partial<Snd>, Ret>;
+	delete: RunAction<Parms, Partial<Snd>, Ret, Ste>;
 	deleteInitiate: InitiateAction<Parms, Partial<Snd>, Ret>;
 	deleteSuccess: SuccessAction<Parms, Partial<Snd>, Ret>;
 	deleteFailure: FailureAction<Parms, Partial<Snd>, Ret>;
@@ -186,14 +183,14 @@ export const DefaultStateBucket = {
 interface ICall<Parms, Snd, Ret, Ste> {
 	actions: ICallActions;
 	name: string;
-	reducer: Reducer<Ste, IActionResult<Parms, Snd, Ret>>;
+	reducer: Reducer<Ste, ActionResult<Parms, Snd, Ret>>;
 	setName: (name: string) => ICall<Parms, Snd, Ret, Ste>;
 	types: ITypeBag;
 }
 
 export interface IResource<Parms, Snd, Ret, Idx = SimpleIndexArray<Ret>> {
-	actions: IResourceActions<Parms, Snd, Ret, Idx>;
-	reducer: Reducer<IStateBucket<Ret>, IActionResult<Parms, Snd, Ret>>;
+	actions: IResourceActions<Parms, Snd, Ret, Idx, IStateBucket<Ret>>;
+	reducer: Reducer<IStateBucket<Ret>, ActionResult<Parms, Snd, Ret>>;
 	types: IResourceTypes;
 	name: string;
 	getEntity: (state: IStateBucket<Ret>, id: Id) => Ret;
@@ -216,7 +213,7 @@ interface ICallOptions<Parms, Snd, Ret, Ste> {
 	name?: string;
 	parseResult?: (resultBody: any) => Ret;
 	preFetch?: () => void;
-	reducer?: Reducer<Ste, IActionResult<Parms, Snd, Ret>>;
+	reducer?: Reducer<Ste, ActionResult<Parms, Snd, Ret>>;
 	stringifyBody?: (requestBody: Snd) => string;
 	resourceName?: string;
 	url: ((id?: Id, urlParameters?: Parms) => string) | string;
@@ -297,9 +294,10 @@ export function CombineResource<
 	);
 	return {
 		actions: { ...resource.actions, ...calls.actions },
-		reducer: combineReducers<IStateBucket<Ret>, IActionResult<Parms, Snd, Ret>>(
-			[resource.reducer, calls.reducer]
-		),
+		reducer: combineReducers<IStateBucket<Ret>, ActionResult<Parms, Snd, Ret>>([
+			resource.reducer,
+			calls.reducer,
+		]),
 		types: { ...resource.types, ...calls.types },
 	};
 }
@@ -411,6 +409,7 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 		return {
 			handler,
 			id,
+			result: (undefined as unknown) as Ret,
 			sent,
 			type: types.initiate,
 			urlParameters,
@@ -449,20 +448,18 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 		};
 	};
 
-	function run(
+	const run: RunAction<Parms, Snd, Ret, Ste> = (
 		id?: Id,
 		sent?: Snd,
 		urlParameters?: Parms
-	): FullThunkResult<Parms, Snd, Ret> {
-		return (dispatch: any) => {
-			let resolve: Resolve<IActionResult<Parms, Snd, Ret>>;
-			let reject: Reject<IActionResult<Parms, Snd, Ret>>;
-			const handler = new Promise<IActionResult<Parms, Snd, Ret>>(
-				(res, rej) => {
-					resolve = res;
-					reject = rej;
-				}
-			);
+	) => {
+		return (dispatch) => {
+			let resolve: Resolve<ActionResult<Parms, Snd, Ret>>;
+			let reject: Reject<ActionResult<Parms, Snd, Ret>>;
+			const handler = new Promise<ActionResult<Parms, Snd, Ret>>((res, rej) => {
+				resolve = res;
+				reject = rej;
+			});
 			dispatch(initiate(id, sent, urlParameters, handler));
 			const headers: IHeaderBag =
 				typeof options.headers === "function"
@@ -498,14 +495,14 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 					return options.parseResult(result);
 				})
 				.then((result: Ret):
-					| IActionResult<Parms, Snd, Ret>
+					| ActionResult<Parms, Snd, Ret>
 					| FullPromiseResult<Parms, Snd, Ret> => {
 					fetchResult = result;
 					if (!options.validateStatus(fetchResponse.status)) {
 						dispatch(
 							failure(fetchResponse, fetchResult, id, sent, urlParameters)
 						);
-						const actionResult: IActionResult<Parms, Snd, Ret> = {
+						const actionResult: ActionResult<Parms, Snd, Ret> = {
 							response: fetchResponse,
 							result: fetchResult,
 							type: "error",
@@ -517,7 +514,7 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 						success(fetchResponse, fetchResult, id, sent, urlParameters)
 					);
 				})
-				.then((result: IActionResult<Parms, Snd, Ret>) => {
+				.then((result: ActionResult<Parms, Snd, Ret>) => {
 					resolve(result);
 					return result;
 				})
@@ -535,7 +532,7 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 					return Promise.reject(result);
 				});
 		};
-	}
+	};
 
 	const actions = {
 		failure,
@@ -543,7 +540,7 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 		run,
 		success,
 	};
-	const reducer: Reducer<Ste, IActionResult<Parms, Snd, Ret>> =
+	const reducer: Reducer<Ste, ActionResult<Parms, Snd, Ret>> =
 		options.reducer || (DefaultReducer as any);
 
 	return {
@@ -587,6 +584,7 @@ export function Resource<
 >(
 	options: IResourceOptions<Parms, Snd, Ret, Idx>
 ): IResource<Parms, Snd, Ret, Idx> {
+	type Ste = IStateBucket<Ret>;
 	options = { ...defaultResourceOptions, ...options };
 	const idField = options.idField as string;
 	const resourceName = options.name;
@@ -596,21 +594,21 @@ export function Resource<
 		options.parseIndexResult || ((result) => result);
 
 	const calls = {
-		create: Call<Parms, Snd, Ret, IStateBucket<Ret>>({
+		create: Call<Parms, Snd, Ret, Ste>({
 			...options,
 			method: options.methodCreate,
 			name: "create",
 			resourceName,
 			url: urlBuilder(options.rootUrl),
 		}),
-		delete: Call<Parms, Partial<Snd>, Ret, IStateBucket<Ret>>({
+		delete: Call<Parms, Partial<Snd>, Ret, Ste>({
 			...options,
 			method: options.methodDelete,
 			name: "delete",
 			resourceName,
 			url: idUrlBuilder(options.rootUrl),
 		}),
-		index: Call<Parms, Partial<Snd>, Idx, IStateBucket<Ret>>({
+		index: Call<Parms, Partial<Snd>, Idx, Ste>({
 			...options,
 			method: options.methodIndex,
 			name: "index",
@@ -637,14 +635,14 @@ export function Resource<
 			resourceName,
 			url: urlBuilder(options.rootUrl),
 		}),
-		read: Call<Parms, Snd, Ret, IStateBucket<Ret>>({
+		read: Call<Parms, Snd, Ret, Ste>({
 			...options,
 			method: options.methodRead,
 			name: "read",
 			resourceName,
 			url: idUrlBuilder(options.rootUrl),
 		}),
-		update: Call<Parms, Partial<Snd>, Ret, IStateBucket<Ret>>({
+		update: Call<Parms, Partial<Snd>, Ret, Ste>({
 			...options,
 			method: options.methodUpdate,
 			name: "update",
@@ -661,22 +659,18 @@ export function Resource<
 		update: calls.update.types,
 	};
 
-	function getEntity(state: IStateBucket<Ret>, id: Id): Ret {
+	function getEntity(state: Ste, id: Id): Ret {
 		return state.data[id];
 	}
 
-	function getMeta(state?: IStateBucket<Ret>, id?: Id): IMeta<Ret> | undefined {
+	function getMeta(state?: Ste, id?: Id): IMeta<Ret> | undefined {
 		if (!state || !id) {
 			return;
 		}
 		return state.meta[id];
 	}
 
-	function isValid(
-		cacheOptions: ICacheOptions<Ret>,
-		state: IStateBucket<Ret>,
-		id: Id
-	) {
+	function isValid(cacheOptions: ICacheOptions<Ret>, state: Ste, id: Id) {
 		const entity = getEntity(state, id);
 		const meta = getMeta(state, id);
 
@@ -722,7 +716,7 @@ export function Resource<
 		return res;
 	}
 
-	const cacheread: CacheReadAction<Parms, Snd, Ret> = (
+	const cacheread: CacheReadAction<Parms, Snd, Ret, Ste> = (
 		cacheOptions: ICacheOptions<Ret> = {},
 		id: Id,
 		sent?: Snd,
@@ -730,7 +724,7 @@ export function Resource<
 	) => {
 		return (dispatch, getState: any) => {
 			function batchProcess() {
-				const batchState: IStateBucket<Ret> = getState()[resourceName];
+				const batchState: Ste = getState()[resourceName];
 				const batchDelayMin =
 					options.batchDelayMin || defaultResourceOptions.batchDelayMin;
 				const batchSizeMax =
@@ -783,7 +777,10 @@ export function Resource<
 								);
 								return;
 							}
-							placeholderEntity.handler.resolve({ ...action, result: target });
+							placeholderEntity.handler.resolve({
+								...action,
+								result: target,
+							} as any);
 						});
 						queueUpdate(batchProcess);
 					})
@@ -810,7 +807,7 @@ export function Resource<
 					});
 			}
 
-			const state: IStateBucket<Ret> = getState()[resourceName];
+			const state: Ste = getState()[resourceName];
 			const meta = getMeta(state, id);
 			if (meta && meta.handler) {
 				return meta.handler;
@@ -839,14 +836,14 @@ export function Resource<
 				if (meta && isQueued(meta) && meta.handler) {
 					return meta.handler;
 				}
-				let resolve: Resolve<IActionResult<Parms, Snd, Ret>> = () => undefined;
-				let reject: Reject<IActionResult<Parms, Snd, Ret>> = () => undefined;
-				const handler = new Promise<IActionResult<Parms, Snd, Ret>>(
+				let resolve: Resolve<ActionResult<Parms, Snd, Ret>> = () => undefined;
+				let reject: Reject<ActionResult<Parms, Snd, Ret>> = () => undefined;
+				const handler = new Promise<ActionResult<Parms, Snd, Ret>>(
 					(res, rej) => {
 						resolve = res;
 						reject = rej;
 					}
-				) as ExtPromise<IActionResult<Parms, Snd, Ret>>;
+				) as ExtPromise<ActionResult<Parms, Snd, Ret>>;
 				handler.reject = reject;
 				handler.resolve = resolve;
 
@@ -854,14 +851,7 @@ export function Resource<
 					queueUpdate(batchProcess);
 				}
 
-				dispatch(
-					actions.readInitiate(
-						id,
-						undefined,
-						undefined,
-						handler
-					) as FullThunkResult<Parms, Snd, Ret>
-				);
+				dispatch(actions.readInitiate(id, undefined, undefined, handler));
 				return handler;
 			}
 			return dispatch(actions.read(id, sent, urlParameters));
@@ -877,7 +867,7 @@ export function Resource<
 		};
 	}
 
-	const actions: IResourceActions<Parms, Snd, Ret, Idx> = {
+	const actions: IResourceActions<Parms, Snd, Ret, Idx, Ste> = {
 		cacheread,
 		create: calls.create.actions.run,
 		createFailure: calls.create.actions.failure,
@@ -903,11 +893,11 @@ export function Resource<
 	};
 
 	function updateEntity(
-		state: IStateBucket<Ret>,
+		state: Ste,
 		id?: Id,
 		newData?: Ret,
 		newMeta?: IMeta<Ret>
-	): IStateBucket<Ret> {
+	): Ste {
 		if (!id) {
 			return state;
 		}
@@ -933,11 +923,11 @@ export function Resource<
 	}
 
 	function patchEntity(
-		state: IStateBucket<Ret>,
+		state: Ste,
 		id?: Id,
 		newData?: Partial<Ret>,
 		newMeta?: Partial<IMeta<Ret>>
-	): IStateBucket<Ret> {
+	): Ste {
 		if (!id) {
 			return state;
 		}
@@ -965,7 +955,7 @@ export function Resource<
 		return state;
 	}
 
-	function deleteEntity(state: IStateBucket<Ret>, id?: Id): IStateBucket<Ret> {
+	function deleteEntity(state: Ste, id?: Id): Ste {
 		if (!id) {
 			return state;
 		}
@@ -980,9 +970,9 @@ export function Resource<
 	}
 
 	function reducer(
-		state: IStateBucket<Ret> = DefaultStateBucket,
-		action: IActionResult<Parms, Snd, Ret>
-	): IStateBucket<Ret> {
+		state: Ste = DefaultStateBucket,
+		action: ActionResult<Parms, Snd, Ret>
+	): Ste {
 		let id: Id;
 		switch (action.type) {
 			case calls.read.types.initiate:
