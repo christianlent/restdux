@@ -28,10 +28,10 @@ export type AsyncAction<Parms, Snd, Ret, Ste> = ThunkAction<
 	Action
 >;
 
-export type ApiThunkDispatch = ThunkDispatch<{}, {}, Action>;
-export interface IDispatchProp {
+export type ApiThunkDispatch = ThunkDispatch<any, {}, Action>;
+export type IDispatchProp = {
 	dispatch: ApiThunkDispatch;
-}
+};
 
 type FetchMethod =
 	| "DELETE"
@@ -51,12 +51,12 @@ type FetchMethod =
 
 export type Id = string | number;
 
-export interface ICacheOptions<Ret> {
-	invalid?: (entity?: Ret, meta?: IMeta<Ret>) => boolean;
+export interface CacheOptions<Ret> {
+	invalid?: (entity?: Ret, meta?: Meta<Ret>) => boolean;
 }
 
 type CacheReadAction<Parms, Snd, Ret, Ste> = (
-	cacheOptions: ICacheOptions<Ret>,
+	cacheOptions: CacheOptions<Ret>,
 	id: Id,
 	sent?: Snd,
 	urlParameters?: Parms
@@ -97,23 +97,23 @@ type FailureAction<Parms, Snd, Ret> = (
 	urlParameters?: Parms
 ) => ActionResult<Parms, Snd, Ret>;
 
-export interface IMeta<Ret> {
+export interface Meta<Ret> {
 	loadFailed?: Date;
 	loaded?: Date;
 	loading?: Date;
 	handler?: FullPromiseResult<any, any, Ret>;
 }
 
-interface IGenericCallBag<Ste> {
-	[key: string]: ICall<any, any, any, Ste>;
+interface GenericCallBag<Ste> {
+	[key: string]: Call<any, any, any, Ste>;
 }
 
-interface ICallActions {
+interface CallActions {
 	run: any;
 	[key: string]: any;
 }
 
-export interface IResourceActions<Parms, Snd, Ret, Idx, Ste> {
+export interface ResourceActions<Parms, Snd, Ret, Idx, Ste> {
 	index: RunAction<Parms, Partial<Snd>, Idx, Ste>;
 	indexInitiate: InitiateAction<Parms, Partial<Snd>, Idx>;
 	indexSuccess: SuccessAction<Parms, Partial<Snd>, Idx>;
@@ -140,50 +140,50 @@ export interface IResourceActions<Parms, Snd, Ret, Idx, Ste> {
 
 export type SimpleIndexArray<T> = T[];
 
-export interface IResourceTypes {
-	create: ITypeBag;
-	delete: ITypeBag;
-	index: ITypeBag;
-	read: ITypeBag;
-	update: ITypeBag;
+export interface ResourceTypes {
+	create: TypeBag;
+	delete: TypeBag;
+	index: TypeBag;
+	read: TypeBag;
+	update: TypeBag;
 }
 
-export interface ITypeBag {
+export interface TypeBag {
 	[key: string]: string;
 }
 
-interface IHeaderBag {
+interface HeaderBag {
 	[key: string]: string;
 }
 
 type IParameterBag = object;
 
-export interface IStateBucket<Ret> {
+export type IStateBucket<Ret> = {
 	data: {
 		[key: string]: Ret;
 	};
 	meta: {
-		[key: string]: IMeta<Ret>;
+		[key: string]: Meta<Ret>;
 	};
-}
+};
 
 export const DefaultStateBucket = {
 	data: {},
 	meta: {},
 };
 
-interface ICall<Parms, Snd, Ret, Ste> {
-	actions: ICallActions;
+interface Call<Parms, Snd, Ret, Ste> {
+	actions: CallActions;
 	name: string;
 	reducer: Reducer<Ste, ActionResult<Parms, Snd, Ret>>;
-	setName: (name: string) => ICall<Parms, Snd, Ret, Ste>;
-	types: ITypeBag;
+	setName: (name: string) => Call<Parms, Snd, Ret, Ste>;
+	types: TypeBag;
 }
 
-export interface IResource<Parms, Snd, Ret, Idx = SimpleIndexArray<Ret>> {
-	actions: IResourceActions<Parms, Snd, Ret, Idx, IStateBucket<Ret>>;
+export interface Resource<Parms, Snd, Ret, Idx = SimpleIndexArray<Ret>> {
+	actions: ResourceActions<Parms, Snd, Ret, Idx, IStateBucket<Ret>>;
 	reducer: Reducer<IStateBucket<Ret>, ActionResult<Parms, Snd, Ret>>;
-	types: IResourceTypes;
+	types: ResourceTypes;
 	name: string;
 	getEntity: (state: IStateBucket<Ret>, id: Id) => Ret;
 	patchEntity: (
@@ -198,8 +198,8 @@ export interface IResource<Parms, Snd, Ret, Idx = SimpleIndexArray<Ret>> {
 	) => IStateBucket<Ret>;
 }
 
-interface ICallOptions<Parms, Snd, Ret, Ste> {
-	headers?: IHeaderBag | (() => IHeaderBag);
+interface CallOptions<Parms, Snd, Ret, Ste> {
+	headers?: HeaderBag | (() => HeaderBag);
 	idField?: string;
 	method?: FetchMethod;
 	name?: string;
@@ -212,14 +212,14 @@ interface ICallOptions<Parms, Snd, Ret, Ste> {
 	validateStatus?: (status: number) => boolean;
 }
 
-interface IResourceOptions<Parms, Snd, Ret, Idx> {
+interface ResourceOptions<Parms, Snd, Ret, Idx> {
 	batchReads?: boolean;
 	batchSizeMax?: number;
 	batchDelayMax?: number;
 	batchDelayMin?: number;
 	batchIdsParameter?: string;
-	cacheOptions?: ICacheOptions<Ret>;
-	headers?: IHeaderBag | (() => IHeaderBag);
+	cacheOptions?: CacheOptions<Ret>;
+	headers?: HeaderBag | (() => HeaderBag);
 	idField?: string;
 	methodCreate?: FetchMethod;
 	methodDelete?: FetchMethod;
@@ -253,17 +253,17 @@ function DefaultReducer<Ste>(state: Ste | undefined): Ste {
 	return state as Ste;
 }
 
-interface INoResource<Ret> {
+interface NoResource<Ret> {
 	actions?: null;
 	reducer?: null;
 	types?: null;
 }
 
-export function GetNoResource<Ret>(): INoResource<Ret> {
+export function GetNoResource<Ret>(): NoResource<Ret> {
 	return {};
 }
 
-interface ICombinedCalls<Ste, C extends IGenericCallBag<Ste>> {
+interface CombinedCalls<Ste, C extends GenericCallBag<Ste>> {
 	actions: {
 		[P in keyof C]: C[P]["actions"]["run"];
 	};
@@ -277,10 +277,10 @@ export function CombineResource<
 	Parms,
 	Snd,
 	Ret,
-	C extends IGenericCallBag<IStateBucket<Ret>>
->(resource: IResource<Parms, Snd, Ret>, callBucket: C) {
+	C extends GenericCallBag<IStateBucket<Ret>>
+>(resource: Resource<Parms, Snd, Ret>, callBucket: C) {
 	type Ste = IStateBucket<Ret>;
-	const calls: ICombinedCalls<Ste, C> = CombineCalls<Ste, C>(
+	const calls: CombinedCalls<Ste, C> = CombineCalls<Ste, C>(
 		GetNoResource<Ste>(),
 		callBucket
 	);
@@ -294,8 +294,8 @@ export function CombineResource<
 	};
 }
 
-export function CombineCalls<Ste, C extends IGenericCallBag<Ste>>(
-	resource: INoResource<Ste>,
+export function CombineCalls<Ste, C extends GenericCallBag<Ste>>(
+	resource: NoResource<Ste>,
 	callBucket: C
 ) {
 	const calls = Object.keys(callBucket).map((name) =>
@@ -363,7 +363,7 @@ function urlBuilder<Parms extends IParameterBag>(
 }
 
 export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
-	newOptions: ICallOptions<Parms, Snd, Ret, Ste>
+	newOptions: CallOptions<Parms, Snd, Ret, Ste>
 ) {
 	const defaultCallOptions = {
 		headers: {
@@ -453,7 +453,7 @@ export function Call<Parms = {}, Snd = {}, Ret = {}, Ste = {}>(
 				reject = rej;
 			});
 			dispatch(initiate(id, sent, urlParameters, handler));
-			const headers: IHeaderBag =
+			const headers: HeaderBag =
 				typeof options.headers === "function"
 					? options.headers()
 					: options.headers;
@@ -574,8 +574,8 @@ export function Resource<
 	Ret,
 	Idx = SimpleIndexArray<Ret>
 >(
-	options: IResourceOptions<Parms, Snd, Ret, Idx>
-): IResource<Parms, Snd, Ret, Idx> {
+	options: ResourceOptions<Parms, Snd, Ret, Idx>
+): Resource<Parms, Snd, Ret, Idx> {
 	type Ste = IStateBucket<Ret>;
 	options = { ...defaultResourceOptions, ...options };
 	const idField = options.idField as string;
@@ -655,14 +655,14 @@ export function Resource<
 		return state.data[id];
 	}
 
-	function getMeta(state?: Ste, id?: Id): IMeta<Ret> | undefined {
+	function getMeta(state?: Ste, id?: Id): Meta<Ret> | undefined {
 		if (!state || !id) {
 			return;
 		}
 		return state.meta[id];
 	}
 
-	function isValid(cacheOptions: ICacheOptions<Ret>, state: Ste, id: Id) {
+	function isValid(cacheOptions: CacheOptions<Ret>, state: Ste, id: Id) {
 		const entity = getEntity(state, id);
 		const meta = getMeta(state, id);
 
@@ -688,7 +688,7 @@ export function Resource<
 		timeoutHandler = setTimeout(h, options.batchDelayMin);
 	}
 
-	function isQueued(meta: IMeta<Ret>) {
+	function isQueued(meta: Meta<Ret>) {
 		return (
 			meta.handler != null &&
 			meta.loading != null &&
@@ -709,7 +709,7 @@ export function Resource<
 	}
 
 	const cacheread: CacheReadAction<Parms, Snd, Ret, Ste> = (
-		cacheOptions: ICacheOptions<Ret> = {},
+		cacheOptions: CacheOptions<Ret> = {},
 		id: Id,
 		sent?: Snd,
 		urlParameters?: Parms
@@ -722,7 +722,7 @@ export function Resource<
 				const batchSizeMax =
 					options.batchSizeMax || defaultResourceOptions.batchSizeMax;
 				let latest = 0;
-				const batchedMetaBag: { [key: string]: IMeta<Ret> } = {};
+				const batchedMetaBag: { [key: string]: Meta<Ret> } = {};
 				filterMax(Object.keys(batchState.meta), batchSizeMax, (targetId) =>
 					isQueued(batchState.meta[targetId])
 				).forEach((targetId) => {
@@ -859,7 +859,7 @@ export function Resource<
 		};
 	}
 
-	const actions: IResourceActions<Parms, Snd, Ret, Idx, Ste> = {
+	const actions: ResourceActions<Parms, Snd, Ret, Idx, Ste> = {
 		cacheread,
 		create: calls.create.actions.run,
 		createFailure: calls.create.actions.failure,
@@ -888,7 +888,7 @@ export function Resource<
 		state: Ste,
 		id?: Id,
 		newData?: Ret,
-		newMeta?: IMeta<Ret>
+		newMeta?: Meta<Ret>
 	): Ste {
 		if (!id) {
 			return state;
@@ -918,7 +918,7 @@ export function Resource<
 		state: Ste,
 		id?: Id,
 		newData?: Partial<Ret>,
-		newMeta?: Partial<IMeta<Ret>>
+		newMeta?: Partial<Meta<Ret>>
 	): Ste {
 		if (!id) {
 			return state;
