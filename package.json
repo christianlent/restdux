@@ -2,12 +2,13 @@
 	"name": "restdux",
 	"version": "0.1.10",
 	"description": "A Typescript/Javascript library for interacting with RESTful server APIs and connecting them to Redux store",
-	"main": "lib/restdux.js",
-	"types": "lib/restdux.d.ts",
+	"main": "dist/restdux.js",
+	"types": "dist/restdux.d.ts",
 	"scripts": {
 		"build": "tsc",
 		"format": "prettier --write \"src/*.ts\"",
 		"lint": "eslint \"src/*.ts\" --fix",
+		"prepublish": "npm run build",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [],

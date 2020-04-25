@@ -28,6 +28,11 @@ export type AsyncAction<Parms, Snd, Ret, Ste> = ThunkAction<
 	Action
 >;
 
+export type ApiThunkDispatch = ThunkDispatch<{}, {}, Action>;
+export interface IDispatchProp {
+	dispatch: ApiThunkDispatch;
+}
+
 type FetchMethod =
 	| "DELETE"
 	| "GET"
@@ -48,19 +53,6 @@ export type Id = string | number;
 
 export interface ICacheOptions<Ret> {
 	invalid?: (entity?: Ret, meta?: IMeta<Ret>) => boolean;
-}
-
-export type ApiThunkDispatch<
-	TState = any,
-	TExtraThunkArg = undefined,
-	TBasicAction extends Action = Action
-> = ThunkDispatch<TState, TExtraThunkArg, TBasicAction>;
-export interface IDispatchProp<
-	TState = any,
-	TExtraThunkArg = undefined,
-	TBasicAction extends Action = Action
-> {
-	dispatch: ApiThunkDispatch<TState, TExtraThunkArg, TBasicAction>;
 }
 
 type CacheReadAction<Parms, Snd, Ret, Ste> = (
